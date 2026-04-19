@@ -38,6 +38,63 @@
 
 ---
 
+
+## 🖥️ Usage
+
+After installation, simply run martech. You will see an interactive menu with 40 options. Navigate using numbers and press Enter.
+
+All outputs are automatically saved as reports in ~/MARTECH/reports/ with timestamps.
+
+---
+
+## 💰 Donations
+
+If you find MARTECH useful and would like to support continued development, you can donate via:
+
+· PayPal: [your-paypal-email-or-link]
+· Bitcoin (BTC): [your-btc-address]
+
+Your support is greatly appreciated! 🙏
+
+---
+
+## ⚠️ Legal Disclaimer
+
+This tool is provided for educational purposes and authorized security testing only.
+You must have explicit permission to scan or gather information about any target. Unauthorized access or use against systems you do not own is illegal and punishable by law. The author assumes no liability for any misuse or damage caused by this tool.
+
+By using MARTECH, you agree to use it responsibly and within the bounds of the law.
+
+---
+
+## 📸 Screenshots
+
+(Add your own screenshots here)
+
+---
+
+## 🤝 Contributing
+
+Feel free to fork the repository, add new features, and submit pull requests. For major changes, please open an issue first.
+
+---
+
+## 📄 License
+
+MIT
+
+---
+
+## 🌟 Support
+
+If you like MARTECH, give it a ⭐ on GitHub!
+
+For issues, open an issue in the repository.
+
+---
+
+Created by Martech – Ethical hacking for everyone 🔒
+
 ## 📦 Installation
 
 Open Termux and run:
