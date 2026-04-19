@@ -1,6 +1,6 @@
 # MARTECH - Ultimate Graphical Info Gathering & Fun Tool for Termux (Non‑Root)
 
-![Banner](https://img.shields.io/badge/MARTECH-v4.0-brightgreen) ![Termux](https://img.shields.io/badge/Termux-Compatible-blue) ![License](https://img.shields.io/badge/License-MIT-red)
+![Banner](https://img.shields.io/badge/MARTECH-v1.0-brightgreen) ![Termux](https://img.shields.io/badge/Termux-Compatible-blue) ![License](https://img.shields.io/badge/License-MIT-red)
 
 **MARTECH** is an all‑in‑one terminal suite for information gathering, OSINT, network scanning, utilities, and games – designed specifically for **non‑rooted Termux** on Android. It features a sleek graphical interface, animations, and over 40 tools.
 
