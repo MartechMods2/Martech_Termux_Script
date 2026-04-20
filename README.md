@@ -1,4 +1,4 @@
-# MARTECH - Ultimate Graphical Info Gathering & Fun Tool for Termux (Non‑Root)
+# MARTSCRIPT - Info Gathering & Fun Tool for Termux (Non‑Root)
 
 ![Banner](https://img.shields.io/badge/MARTECH-v1.0-brightgreen) ![Termux](https://img.shields.io/badge/Termux-Compatible-blue) ![License](https://img.shields.io/badge/License-MIT-red)
 
