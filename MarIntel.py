@@ -1,19 +1,15 @@
 #!/usr/bin/env python3
 """
-MARINTEL - Cyber Intelligence IP Lookup Tool
-Works on Kali (GUI/CLI) and Android Termux (CLI)
-Auto-detects display → GUI or interactive terminal menu.
-Version 3.0 – Fully patched, enhanced for Termux.
+MARINTEL - Termux Edition (CLI only)
+Cyber Intelligence IP Lookup Tool – Optimised for Android Termux.
+No PyQt5, no GUI fallbacks.
 """
-
 import sys, os, re, json, csv, argparse, socket, subprocess, time, logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import List, Dict, Optional
 
-# ------------------------------------------------------------------------------
-# Optional dependencies (graceful fallback)
-# ------------------------------------------------------------------------------
+# --------------- Beautiful output (optional) ---------------
 try:
     from tabulate import tabulate
     HAS_TABULATE = True
@@ -31,21 +27,7 @@ except ImportError:
     class Style:
         BRIGHT = RESET_ALL = ""
 
-try:
-    from PyQt5.QtWidgets import (
-        QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-        QPushButton, QLineEdit, QLabel, QTableWidget, QTableWidgetItem,
-        QProgressBar, QFileDialog, QMessageBox, QHeaderView, QMenu, QAction
-    )
-    from PyQt5.QtCore import Qt, QThread, pyqtSignal
-    import webbrowser
-    HAS_GUI = True
-except ImportError:
-    HAS_GUI = False
-
-# ------------------------------------------------------------------------------
-# Constants
-# ------------------------------------------------------------------------------
+# --------------- Constants ---------------
 PRIMARY_API   = "http://ip-api.com/json/{}?fields=status,message,country,regionName,city,lat,lon,isp,org,as,timezone,proxy,hosting,mobile,query"
 FALLBACK_API  = "http://ipapi.co/{}/json/"
 ABUSEIPDB_URL = "https://api.abuseipdb.com/api/v2/check"
@@ -59,13 +41,11 @@ MAX_WORKERS   = 15
 logging.basicConfig(filename=LOG_FILE, level=logging.ERROR,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-# ------------------------------------------------------------------------------
-# Network / Backend
-# ------------------------------------------------------------------------------
+# --------------- Network / Backend ---------------
 def create_session(retries=2):
     from requests.adapters import HTTPAdapter
     from urllib3.util.retry import Retry
-    session = requests.Session()  # noqa: requests will be imported
+    session = requests.Session()
     retry_strategy = Retry(
         total=retries,
         backoff_factor=1,
@@ -174,7 +154,6 @@ def fetch_ip(ip: str, abuse_key: str = None) -> Dict:
             logging.error(f"IP {ip}: {fallback_exc}")
             return {"ip": ip, "error": f"Lookup failed: {str(fallback_exc)}"}
 
-    # AbuseIPDB enrichment
     if abuse_key:
         abuse = query_abuseipdb(ip, abuse_key)
         result.update(abuse)
@@ -195,42 +174,21 @@ def scan_ips(ips: List[str], abuse_key: str = None, progress_callback=None) -> L
                 progress_callback(len(results), len(ips))
     return results
 
-# ------------------------------------------------------------------------------
-# Termux helpers
-# ------------------------------------------------------------------------------
-def is_termux():
-    return "com.termux" in os.environ.get("PREFIX", "") or "termux" in os.environ.get("TERMUX_VERSION", "").lower()
-
+# --------------- Termux helpers ---------------
 def termux_open_url(url):
-    """Open URL in Android browser (Termux)."""
-    if is_termux():
+    try:
         subprocess.run(["termux-open-url", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    else:
-        import webbrowser
-        webbrowser.open(url)
+    except FileNotFoundError:
+        print("❌ termux-open-url not found. Install termux-api: pkg install termux-api")
 
-def copy_to_clipboard(text):
-    """Copy text to system clipboard (Termux or desktop)."""
-    if is_termux():
-        subprocess.run(["termux-clipboard-set"], input=text.encode())
-    else:
-        try:
-            from PyQt5.QtWidgets import QApplication
-            app = QApplication.instance()
-            if app:
-                app.clipboard().setText(text)
-                return
-        except:
-            pass
-        try:
-            import pyperclip
-            pyperclip.copy(text)
-        except:
-            pass
+def termux_copy_to_clipboard(text):
+    try:
+        subprocess.run(["termux-clipboard-set"], input=text.encode(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        print("✅ Copied to clipboard.")
+    except FileNotFoundError:
+        print("❌ termux-clipboard-set not found. Install termux-api: pkg install termux-api")
 
-# ------------------------------------------------------------------------------
-# CLI interactive menu
-# ------------------------------------------------------------------------------
+# --------------- CLI interactive menu ---------------
 class MarintelCLI:
     def __init__(self):
         self.settings = self.load_json(SETTINGS_FILE, {"abuse_key": "", "default_export": "csv"})
@@ -245,7 +203,7 @@ class MarintelCLI:
             print(text)
 
     def clear_screen(self):
-        os.system('cls' if os.name == 'nt' else 'clear')
+        os.system('clear')
 
     def print_banner(self):
         self.clear_screen()
@@ -258,7 +216,7 @@ class MarintelCLI:
  |_|  |_|_| |_|   \__\___/_____|_| |_|_|\___|_|
         """)
         print(Fore.GREEN + "⚡ Cyber Intelligence IP Lookup Tool")
-        print(Fore.MAGENTA + "by Martech | v3.0 Enhanced\n")
+        print(Fore.MAGENTA + "by Martech | Termux Edition v3.0\n")
 
     def input_ips(self, prompt="Enter IP(s) (comma/space separated): "):
         raw = input(prompt).strip()
@@ -328,7 +286,7 @@ class MarintelCLI:
                 for row in rows:
                     print("  ".join(str(item).ljust(w) for item, w in zip(row, col_widths)))
 
-            # Quick actions after display
+            # Quick actions
             print("\n📌 Actions: [M] open map of row  |  [C] copy IP of row  |  [Enter] return")
             action = input("👉 Choice: ").strip().lower()
             if action.startswith("m"):
@@ -338,8 +296,7 @@ class MarintelCLI:
             elif action.startswith("c"):
                 idx = self._parse_row(action[1:], len(valid))
                 if idx is not None:
-                    copy_to_clipboard(valid[idx]["ip"])
-                    self.cprint("IP copied to clipboard.", Fore.GREEN)
+                    termux_copy_to_clipboard(valid[idx]["ip"])
         if errors:
             print("\n❌ Errors:")
             for err in errors:
@@ -348,10 +305,7 @@ class MarintelCLI:
     def _parse_row(self, part, max_row):
         row = part.strip()
         if not row:
-            try:
-                row = input("Row number: ").strip()
-            except:
-                return None
+            row = input("Row number: ").strip()
         if row.isdigit():
             num = int(row) - 1
             if 0 <= num < max_row:
@@ -424,7 +378,6 @@ class MarintelCLI:
         self.save_json(HISTORY_FILE, [])
         self.cprint("History cleared.", Fore.GREEN)
 
-    # Target list management
     def manage_targets(self):
         while True:
             self.clear_screen()
@@ -530,7 +483,6 @@ class MarintelCLI:
             self.clear_history()
         input("\nPress Enter...")
 
-    # JSON helpers with default
     def load_json(self, path, default=None):
         if default is None:
             default = {}
@@ -546,7 +498,6 @@ class MarintelCLI:
         with open(path, "w") as f:
             json.dump(data, f, indent=2)
 
-    # Main interactive loop
     def main_menu(self):
         while True:
             self.clear_screen()
@@ -593,181 +544,13 @@ class MarintelCLI:
                 self.cprint("Invalid option.", Fore.RED)
                 input("\nPress Enter...")
 
-    # Batch mode (non-interactive)
     def run_batch(self, ips):
+        """Non‑interactive scan when IPs are passed as arguments."""
         self.perform_scan(ips)
 
-# ------------------------------------------------------------------------------
-# GUI (PyQt5) – only loaded when HAS_GUI is True
-# ------------------------------------------------------------------------------
-if HAS_GUI:
-    class ScanWorker(QThread):
-        progress = pyqtSignal(int, int)
-        finished = pyqtSignal(list)
-
-        def __init__(self, ips, abuse_key):
-            super().__init__()
-            self.ips = ips
-            self.abuse_key = abuse_key
-
-        def run(self):
-            results = scan_ips(self.ips, self.abuse_key, progress_callback=self.progress.emit)
-            self.finished.emit(results)
-
-    class MARINTEL_GUI(QWidget):
-        def __init__(self):
-            super().__init__()
-            self.results = []
-            self.setWindowTitle("MARINTEL - Cyber Intelligence")
-            self.setGeometry(100, 100, 1200, 700)
-            self.setStyleSheet(self.dark_theme())
-            main_layout = QVBoxLayout()
-            top_layout = QHBoxLayout()
-            self.setup_top_bar(top_layout)
-            main_layout.addLayout(top_layout)
-            self.table = QTableWidget()
-            self.table.setColumnCount(8)
-            self.table.setHorizontalHeaderLabels(["IP", "Location", "ISP", "ASN", "Status", "RDNS", "Map", "Time"])
-            self.table.setSortingEnabled(True)
-            self.table.cellDoubleClicked.connect(self.open_map)
-            self.table.setContextMenuPolicy(Qt.CustomContextMenu)
-            self.table.customContextMenuRequested.connect(self.context_menu)
-            main_layout.addWidget(self.table)
-            self.progress_bar = QProgressBar()
-            self.progress_bar.setVisible(False)
-            main_layout.addWidget(self.progress_bar)
-            self.status_label = QLabel("Ready")
-            self.status_label.setStyleSheet("color:#94a3b8; padding:5px;")
-            main_layout.addWidget(self.status_label)
-            self.setLayout(main_layout)
-
-        def setup_top_bar(self, layout):
-            self.ip_input = QLineEdit()
-            self.ip_input.setPlaceholderText("IP addresses (comma/space) or file path...")
-            layout.addWidget(self.ip_input)
-            scan_btn = QPushButton("Scan")
-            scan_btn.clicked.connect(self.start_scan)
-            layout.addWidget(scan_btn)
-            file_btn = QPushButton("Load File")
-            file_btn.clicked.connect(self.load_file)
-            layout.addWidget(file_btn)
-            export_csv_btn = QPushButton("Export CSV")
-            export_csv_btn.clicked.connect(lambda: self.export("csv"))
-            layout.addWidget(export_csv_btn)
-            export_json_btn = QPushButton("Export JSON")
-            export_json_btn.clicked.connect(lambda: self.export("json"))
-            layout.addWidget(export_json_btn)
-            clear_btn = QPushButton("Clear")
-            clear_btn.clicked.connect(self.clear)
-            layout.addWidget(clear_btn)
-
-        def load_file(self):
-            path, _ = QFileDialog.getOpenFileName(self, "Select IP list file")
-            if path:
-                with open(path) as f:
-                    ips = [line.strip() for line in f if line.strip()]
-                self.ip_input.setText(", ".join(ips))
-
-        def start_scan(self):
-            raw = self.ip_input.text()
-            if os.path.isfile(raw):
-                with open(raw) as f:
-                    ips = [line.strip() for line in f if line.strip()]
-            else:
-                ips = [ip.strip() for ip in raw.replace(",", " ").split() if ip.strip()]
-            ips = list(set(ips))
-            invalid = [ip for ip in ips if not is_valid_ip(ip)]
-            if invalid:
-                QMessageBox.warning(self, "Invalid IPs", f"Skipped invalid: {', '.join(invalid)}")
-                ips = [ip for ip in ips if is_valid_ip(ip)]
-            if not ips:
-                return
-            self.table.setRowCount(0)
-            self.results = []
-            self.progress_bar.setVisible(True)
-            self.status_label.setText("Scanning...")
-            abuse_key = os.environ.get("ABUSEIPDB_KEY", "")
-            self.worker = ScanWorker(ips, abuse_key)
-            self.worker.progress.connect(self.update_progress)
-            self.worker.finished.connect(self.scan_finished)
-            self.worker.start()
-
-        def update_progress(self, done, total):
-            self.progress_bar.setMaximum(total)
-            self.progress_bar.setValue(done)
-
-        def scan_finished(self, results):
-            self.progress_bar.setVisible(False)
-            self.results = results
-            errs = [r for r in results if "error" in r]
-            valid = [r for r in results if "error" not in r]
-            for r in valid:
-                row = self.table.rowCount()
-                self.table.insertRow(row)
-                rdns = r.get("rdns") or "N/A"
-                items = [r["ip"], r["location"], r["isp"], r["asn"], r["status"], rdns, "Open Map", r.get("time", "")]
-                for col, text in enumerate(items):
-                    self.table.setItem(row, col, QTableWidgetItem(text))
-            self.status_label.setText(f"Done. {len(valid)} OK, {len(errs)} errors.")
-            self.table.resizeColumnsToContents()
-
-        def open_map(self, row, col):
-            if col == 6:
-                map_url = self.results[row]["map"]
-                webbrowser.open(map_url)
-
-        def context_menu(self, pos):
-            menu = QMenu()
-            copy_ip = menu.addAction("Copy IP")
-            copy_all = menu.addAction("Copy Row")
-            action = menu.exec_(self.table.viewport().mapToGlobal(pos))
-            if action == copy_ip:
-                item = self.table.itemAt(pos)
-                if item:
-                    QApplication.clipboard().setText(item.text())
-            elif action == copy_all:
-                row = self.table.rowAt(pos.y())
-                if row >= 0:
-                    texts = [self.table.item(row, c).text() for c in range(self.table.columnCount()-1)]
-                    QApplication.clipboard().setText("\t".join(texts))
-
-        def export(self, fmt):
-            path, _ = QFileDialog.getSaveFileName(self, f"Export as {fmt.upper()}", "", f"*.{fmt}")
-            if not path:
-                return
-            if fmt == "csv":
-                with open(path, "w", newline="", encoding="utf-8") as f:
-                    writer = csv.writer(f)
-                    writer.writerow(["ip", "location", "isp", "asn", "status", "rdns", "map", "time"])
-                    for r in self.results:
-                        if "error" not in r:
-                            writer.writerow([r["ip"], r["location"], r["isp"], r["asn"], r["status"],
-                                             r.get("rdns",""), r["map"], r.get("time","")])
-            else:
-                with open(path, "w", encoding="utf-8") as f:
-                    json.dump(self.results, f, indent=2)
-            QMessageBox.information(self, "Export", f"Saved to {path}")
-
-        def clear(self):
-            self.table.setRowCount(0)
-            self.results = []
-            self.status_label.setText("Cleared")
-
-        def dark_theme(self):
-            return """
-            QWidget { background-color: #0b1220; color: #e5e7eb; font-family: Consolas; }
-            QLineEdit { background-color: #111827; border:1px solid #374151; padding:5px; }
-            QPushButton { background-color: #1f2937; border:none; padding:8px; }
-            QPushButton:hover { background-color: #374151; }
-            QTableWidget { background:#111827; gridline-color:#374151; }
-            QHeaderView::section { background:#1f2937; padding:4px; border:1px solid #374151; }
-            """
-
-# ------------------------------------------------------------------------------
-# Entry point
-# ------------------------------------------------------------------------------
+# --------------- Entry point ---------------
 def main():
-    # If arguments are given, run batch (non-interactive) mode
+    # Batch mode if arguments given
     if len(sys.argv) > 1:
         args = sys.argv[1:]
         ips = []
@@ -790,15 +573,6 @@ def main():
         if abuse_flag:
             cli.abuse_key = os.environ.get("ABUSEIPDB_KEY", "")
         cli.run_batch(ips)
-        return
-
-    # Decide GUI vs interactive CLI
-    gui_possible = HAS_GUI and (sys.platform != "linux" or "DISPLAY" in os.environ)
-    if gui_possible:
-        app = QApplication(sys.argv)
-        window = MARINTEL_GUI()
-        window.show()
-        sys.exit(app.exec_())
     else:
         cli = MarintelCLI()
         cli.main_menu()
