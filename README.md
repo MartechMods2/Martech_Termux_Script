@@ -106,3 +106,11 @@ git clone https://github.com/MartechMods2/Martech_Termux_Script.git
 cd Martech_Termux_Script
 chmod +x martech.sh
 mv martech.sh $PREFIX/bin/martech
+
+#Or If you wanna do some ip lookup
+
+pkg update && pkg upgrade
+pkg install python3
+git clone https://github.com/MartechMods2/Martech_Termux_Script.git
+cd Martech_Termux_Script
+python3 MartIntel.py
