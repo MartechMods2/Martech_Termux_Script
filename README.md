@@ -111,6 +111,8 @@ mv martech.sh $PREFIX/bin/martech
 
 pkg update && pkg upgrade
 pkg install python3
+pkg install python
+pip install requests colorama tabulate
 git clone https://github.com/MartechMods2/Martech_Termux_Script.git
 cd Martech_Termux_Script
 python3 MarIntel.py
