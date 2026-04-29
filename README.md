@@ -109,9 +109,8 @@ mv martech.sh $PREFIX/bin/martech
 
 #Or If you wanna do some ip lookup
 
-pkg update && pkg upgrade
-pkg install python3
-pkg install python
+pkg update && pkg upgrade 
+pkg install python termux-api python3
 pip install requests colorama tabulate
 git clone https://github.com/MartechMods2/Martech_Termux_Script.git
 cd Martech_Termux_Script
