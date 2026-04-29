@@ -113,4 +113,4 @@ pkg update && pkg upgrade
 pkg install python3
 git clone https://github.com/MartechMods2/Martech_Termux_Script.git
 cd Martech_Termux_Script
-python3 MartIntel.py
+python3 MarIntel.py
